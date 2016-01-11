@@ -32,7 +32,7 @@
 ##' @examples
 ##' data(ech)
 ##' 
-##' output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 6)
+##' output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 1)
 ##' 
 ##' summary(output)
 ##' 
