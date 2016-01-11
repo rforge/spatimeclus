@@ -20,7 +20,6 @@
 ##' @keywords package
 ##' @import parallel
 ##' @import Rcpp
-##' @import RcppArmadillo
 ##' @import methods
 ##' @importFrom stats runif
 ##' @useDynLib SpaTimeClus
