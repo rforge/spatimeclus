@@ -15,7 +15,7 @@ initparam <- function(ech, model, newtool){
   colnames(sigma) <- paste("polynom", 1:model@K, sep=".")
   return(new("STCparam", proportions=prop, lambda=lambda, beta=beta, sigma=sigma))
 }
-# a verifier
+
 Probacond <- function(ech, model, param, newtool, toollogistic){
   output <- list(condintra=list(), condintramargin=list(), logcondinter=matrix(0, ech@n, model@G, byrow = TRUE))
   for (g in 1:model@G){
@@ -45,17 +45,21 @@ TuneOutput <- function(output){
     output@param@lambda[[g]] <- matrix(output@param@lambda[[g]], output@model@K, 4)
     colnames(output@param@lambda[[g]]) <- c("coordinate1", "coordinate2", "time", "intercept")
     output@param@beta[[g]] <- matrix(output@param@beta[[g]], output@model@K, output@model@Q*3+1)
-    colnames(output@param@beta[[g]]) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))
+    if (output@model@Q>1) colnames(output@param@beta[[g]]) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))
     rownames(output@param@lambda[[g]]) <- rownames(output@param@beta[[g]]) <- paste("polynom", 1:output@model@K, sep=".")
   }
   names(output@param@beta) <- names(output@param@lambda) <- paste("component", 1:output@model@G, sep=".")
   toollogistic <- cbind(output@data@map, rep(1, output@data@JJ))
   for (tt in 2:output@data@TT)    toollogistic <- rbind(toollogistic, cbind(output@data@map, rep(tt,  output@data@JJ)))
-  newtool <- toollogistic
-  if (output@model@Q>1) for (q in 2:output@model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
+  if (output@model@Q>0){
+    newtool <- toollogistic
+    if (output@model@Q>1) {for (q in 2:output@model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
+    newtool <- cbind(rep(1, nrow(newtool)), newtool)
+    colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))  
+  }else{
+    newtool <- matrix(1, nrow(toollogistic), 1)
+  }
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
-  newtool <- cbind(rep(1, nrow(newtool)), newtool)
-  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))  
   proba <- Probacond(output@data, output@model, output@param, newtool, toollogistic)
   sig <- weightlogistic <-list()
   for (g in 1:output@model@G){
@@ -82,8 +86,8 @@ TuneOutput <- function(output){
   output@criteria@BIC <- output@criteria@loglike - 0.5 * output@model@nbparam * log(output@data@n)
   rownames(output@param@sigma) <- paste("component", 1:output@model@G, sep=".")
   colnames(output@param@sigma) <- paste("polynom", 1:output@model@K, sep=".")
- entrop <- 0
+  entrop <- 0
   for (g in 1:output@model@G) entrop <- entrop + sum(log(output@partitions@fuzzyind[which(output@partitions@hardind==g),g]))
- output@criteria@ICL <- output@criteria@BIC + entrop
+  output@criteria@ICL <- output@criteria@BIC + entrop
   return(output)
 }

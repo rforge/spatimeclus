@@ -42,11 +42,17 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
   nbinitKept <- nbcores * ceiling(nbinitKept / nbcores) 
   toollogistic <- cbind(ech@map, rep(1, ech@JJ))
   for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
-  newtool <- toollogistic
-  if (model@Q>1) for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
-  newtool <- cbind(rep(1, nrow(newtool)), newtool)
+  
+  if (model@Q>0){
+    newtool <- toollogistic
+    if (model@Q>1){for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
+    newtool <- cbind(rep(1, nrow(newtool)), newtool)
+    colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
+  }else{
+    newtool <- matrix(1, nrow(toollogistic), 1)
+  }
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
-  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
+
   if (is.null(param)){
     param <- list()
     for (it in 1:nbinitSmall)  param[[it]] <- initparam(ech, model,newtool)
@@ -164,11 +170,15 @@ spatimeclass <- function(ech, model, param){
   
   toollogistic <- cbind(ech@map, rep(1, ech@JJ))
   for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
-  newtool <- toollogistic
-  if (model@Q>1) for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
-  newtool <- cbind(rep(1, nrow(newtool)), newtool)
+  if (model@Q>1){
+    newtool <- toollogistic
+    if (model@Q>1){for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
+    newtool <- cbind(rep(1, nrow(newtool)), newtool)
+    colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
+  }else{
+    newtool <- matrix(1, nrow(toollogistic), 1)
+  }
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
-  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
   # Proba post computation
   proba <- Probacond(ech, model, param, newtool, toollogistic)
   output<- new("STCresults", model=model, data=ech, param=param, criteria=new("STCcriteria", loglike= sum(log(rowSums(exp(sweep(proba$logcondinter, 1, apply(proba$logcondinter,1, max), "-")))) + apply(proba$logcondinter,1, max))))
