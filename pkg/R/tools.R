@@ -1,4 +1,4 @@
-initparam <- function(ech, model){
+initparam <- function(ech, model, newtool){
   lambda <- beta <- sigma <- list()
   prop <- runif(model@G)
   prop <-  prop / sum(prop)
@@ -7,23 +7,16 @@ initparam <- function(ech, model){
     if (model@K>1) lambda[[g]][-1,] <- matrix(runif((model@K-1)*4,min = -1,max = 1), model@K-1, 4)*0
     colnames(lambda[[g]]) <- c("row", "col", "time", "cste")
     rownames(lambda[[g]]) <- paste("polynom", 1:model@K,sep=".")
-    beta[[g]] <- matrix(runif(model@K*(model@Q+1),min = -1,max = 1), model@K, model@Q+1)
-    if (model@Q>0){
-      for (k in 1:model@K){
-        borne <- sort(sample(1:ech@TT, 2))
-        smalltmp <- cbind(ech@x[sample(1:ech@JJ, 1) + ((borne[1]:borne[2])-1)*ech@JJ ,sample(1:ech@n, 1)], borne[1]:borne[2])
-        if (model@Q>1){for (q in 2:model@Q)    smalltmp <- cbind(smalltmp, (borne[1]:borne[2])**q)}
-        beta[[g]][k,] <- c(mean(ech@x[sample(1:ech@JJ, 1) + ((borne[1]:borne[2])-1)*ech@JJ ,sample(1:ech@n, 1)]), rep(0, model@Q)) 
-      }
-    }
+    beta[[g]] <- matrix(0, model@K, model@Q*3+1)
+    if (model@Q>0){for (k in 1:model@K) beta[[g]][k,] <- coefficients(lm(ech@x[, sample(1:ncol(ech@x),1)]~newtool+0))}
   }
   sigma <- matrix(max(var(ech@x[,1])), model@G, model@K)
   rownames(sigma) <- names(lambda) <- names(beta) <- names(prop) <- paste("compo", 1:model@G, sep=".")
   colnames(sigma) <- paste("polynom", 1:model@K, sep=".")
   return(new("STCparam", proportions=prop, lambda=lambda, beta=beta, sigma=sigma))
 }
-
-Probacond <- function(ech, model, param, matT, toollogistic){
+# a verifier
+Probacond <- function(ech, model, param, newtool, toollogistic){
   output <- list(condintra=list(), condintramargin=list(), logcondinter=matrix(0, ech@n, model@G, byrow = TRUE))
   for (g in 1:model@G){
     output$condintra[[g]] <-  list()
@@ -34,7 +27,10 @@ Probacond <- function(ech, model, param, matT, toollogistic){
     poidspolynom <- poidspolynom / rowSums(poidspolynom)
     
     for (k in 1:model@K){
-      output$condintra[[g]][[k]] <- matrix(poidspolynom[,k], ech@JJ*ech@TT, ech@n) * dnorm( sweep(ech@x, 1, rep(as.matrix(matT[, 1:(model@Q+1)]) %*% (param@beta[[g]][k,]), each=ech@JJ), "-"), sd = sqrt(param@sigma[g,k]))
+      output$condintra[[g]][[k]] <- matrix(NA, nrow(poidspolynom), ncol(ech@x))
+      for (loc in 1:nrow(poidspolynom)){
+        output$condintra[[g]][[k]][loc,] <- poidspolynom[loc,k] * dnorm(ech@x[loc,], mean = sum(newtool[loc,] * param@beta[[g]][k,]) , sd = sqrt(param@sigma[g,k]))
+      } 
       output$condintramargin[[g]] <- output$condintramargin[[g]] + output$condintra[[g]][[k]]
     }  
     output$logcondinter[,g] <- colSums(log(output$condintramargin[[g]])) + log(param@proportions[g]) 
@@ -48,17 +44,19 @@ TuneOutput <- function(output){
   for (g in 1:output@model@G){
     output@param@lambda[[g]] <- matrix(output@param@lambda[[g]], output@model@K, 4)
     colnames(output@param@lambda[[g]]) <- c("coordinate1", "coordinate2", "time", "intercept")
-    output@param@beta[[g]] <- matrix(output@param@beta[[g]], output@model@K, output@model@Q+1)
-    colnames(output@param@beta[[g]]) <- paste("degree", 0:output@model@Q, sep=".")
+    output@param@beta[[g]] <- matrix(output@param@beta[[g]], output@model@K, output@model@Q*3+1)
+    colnames(output@param@beta[[g]]) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))
     rownames(output@param@lambda[[g]]) <- rownames(output@param@beta[[g]]) <- paste("polynom", 1:output@model@K, sep=".")
   }
   names(output@param@beta) <- names(output@param@lambda) <- paste("component", 1:output@model@G, sep=".")
-  
-  matT <- t(exp(sweep(log(matrix(1:output@data@TT, output@model@Q+1, output@data@TT, byrow=TRUE)), 1, 0:output@model@Q, "*")))
   toollogistic <- cbind(output@data@map, rep(1, output@data@JJ))
   for (tt in 2:output@data@TT)    toollogistic <- rbind(toollogistic, cbind(output@data@map, rep(tt,  output@data@JJ)))
+  newtool <- toollogistic
+  if (output@model@Q>1) for (q in 2:output@model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
-  proba <- Probacond(output@data, output@model, output@param, matT, toollogistic)
+  newtool <- cbind(rep(1, nrow(newtool)), newtool)
+  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))  
+  proba <- Probacond(output@data, output@model, output@param, newtool, toollogistic)
   sig <- weightlogistic <-list()
   for (g in 1:output@model@G){
     sig[[g]] <- list()
@@ -80,13 +78,12 @@ TuneOutput <- function(output){
   output@partitions@hardind <- apply(output@partitions@fuzzyind, 1, which.max) 
   names(output@partitions@hardind) <- rownames(output@partitions@fuzzyind) <- colnames(output@data@x)
   colnames(output@partitions@fuzzyind) <- paste("comp", 1:output@model@G, sep=".")
-  
   output@criteria@AIC <- output@criteria@loglike - output@model@nbparam
   output@criteria@BIC <- output@criteria@loglike - 0.5 * output@model@nbparam * log(output@data@n)
   rownames(output@param@sigma) <- paste("component", 1:output@model@G, sep=".")
   colnames(output@param@sigma) <- paste("polynom", 1:output@model@K, sep=".")
-  entrop <- 0
+ entrop <- 0
   for (g in 1:output@model@G) entrop <- entrop + sum(log(output@partitions@fuzzyind[which(output@partitions@hardind==g),g]))
-  output@criteria@ICL <- output@criteria@BIC + entrop
+ output@criteria@ICL <- output@criteria@BIC + entrop
   return(output)
 }

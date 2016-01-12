@@ -56,7 +56,7 @@ double STCXEM::ComputeLogLike(){
   double mu=0, loglike=   -99999999999999999;
   if (m_degeneracy == 0){
     int repere=0;
-    Mat<double> center=mat(m_data_p->m_TT, m_model_p->m_K, fill::zeros);
+    Mat<double> center=mat(m_data_p->m_JJ*m_data_p->m_TT, m_model_p->m_K, fill::zeros);
     Mat<double> tmpind=mat(m_data_p->m_JJ, m_data_p->m_n, fill::zeros);
     m_condintramargin=cube(m_data_p->m_JJ * m_data_p->m_TT, m_data_p->m_n, m_model_p->m_G, fill::zeros);
     m_tig.each_row() = trans(log(m_paramCurrent_p->m_proportions));
@@ -66,9 +66,9 @@ double STCXEM::ComputeLogLike(){
       m_poidspolynom.each_col() /= sum(m_poidspolynom,1);
       center = m_matT * trans(m_paramCurrent_p->m_beta[g]);
       for (int k=0; k< m_model_p->m_K; k++){
-        for (int tt=0; tt<m_data_p->m_TT; tt++){
-          tmpind=exp(-0.5 * pow(m_data_p->m_x.submat(tt*m_data_p->m_JJ, 0, (tt+1)*m_data_p->m_JJ-1, m_data_p->m_n -1) -  center(tt, k), 2)/m_paramCurrent_p->m_sigma(g,k)) / sqrt( 2*M_PI*m_paramCurrent_p->m_sigma(g,k));
-          m_sig[g].subcube(tt*m_data_p->m_JJ, 0, k, (tt+1)*m_data_p->m_JJ-1, m_data_p->m_n -1, k) =  tmpind.each_col() % m_poidspolynom.submat(tt*m_data_p->m_JJ, k, (tt+1)*m_data_p->m_JJ-1, k);
+        for (int loc=0; loc<center.n_rows; loc++){
+          m_sig[g].slice(k).row(loc) = exp(-0.5 * pow(m_data_p->m_x.row(loc) -  center(loc, k), 2)/m_paramCurrent_p->m_sigma(g,k)) / sqrt( 2*M_PI*m_paramCurrent_p->m_sigma(g,k)) * m_poidspolynom(loc, k);
+          //m_sig[g].subcube(tt*m_data_p->m_JJ, 0, k, (tt+1)*m_data_p->m_JJ-1, m_data_p->m_n -1, k) =  tmpind.each_col() % m_poidspolynom.submat(tt*m_data_p->m_JJ, k, (tt+1)*m_data_p->m_JJ-1, k);
         } 
         m_condintramargin.slice(g) += m_sig[g].slice(k);
       }
@@ -134,14 +134,39 @@ void STCXEM::Mstep(){
   m_paramCurrent_p->m_proportions = trans(sum(m_tig,0) / m_data_p->m_n);
   for (int g=0; g<m_model_p->m_G; g++){
     for (int k=0; k< m_model_p->m_K; k++){
+      Col <double> inv=trans(m_paramCurrent_p->m_beta[g].row(k));
+      bool okinversion=solve(inv, trans(m_matT) * diagmat(sum(m_sig[g].slice(k), 1)) * m_matT, trans(m_matT) * (sum(m_sig[g].slice(k) % m_data_p->m_x, 1)), solve_opts::no_approx);
+      if (okinversion == 1){
+        m_paramCurrent_p->m_beta[g].row(k) = trans(inv);     
+      }else{
+        m_degeneracy = 1;
+        goto stop;
+      }
+      Col<double> tmpmean= m_matT * trans(m_paramCurrent_p->m_beta[g].row(k));
+      Col<double> mean= vec( m_data_p->m_TT*m_data_p->m_JJ, fill::zeros);
+      for (int t=0; t< m_data_p->m_TT; t++) mean.subvec(m_data_p->m_JJ*t, m_data_p->m_JJ*(t+1)-1) = vec(m_data_p->m_JJ, fill::ones) * tmpmean(t);
+      m_paramCurrent_p->m_sigma(g,k) = sum( sum(pow(m_data_p->m_x.each_col() - tmpmean, 2) % m_sig[g].slice(k))) / sum( sum(m_sig[g].slice(k)) );
+    }
+    if (m_model_p->m_K>1) { NewtonLogitWeighted(g);}
+  }
+   stop:
+   ;
+  
+}
+
+/*
+void STCXEM::Mstep(){
+  m_paramCurrent_p->m_proportions = trans(sum(m_tig,0) / m_data_p->m_n);
+  for (int g=0; g<m_model_p->m_G; g++){
+    for (int k=0; k< m_model_p->m_K; k++){
       Col<double> tmp=sum(m_sig[g].slice(k), 1);
       Col<double> tmpX = sum(m_sig[g].slice(k) % m_data_p->m_x, 1);
-      Col<double> lambdamat = vec( m_data_p->m_TT, fill::zeros);
-      Col<double> lambdaX= vec( m_data_p->m_TT, fill::zeros);
+      Col<double> lambdamat = vec(m_data_p->m_JJ * m_data_p->m_TT, fill::zeros);
+      Col<double> lambdaX= vec(m_data_p->m_JJ * m_data_p->m_TT, fill::zeros);
       for (int t=0; t< m_data_p->m_TT; t++){
         for (int j=0; j< m_data_p->m_JJ; j++){
-          lambdamat(t) += tmp(m_data_p->m_JJ*t + j);
-          lambdaX(t) += tmpX(m_data_p->m_JJ*t + j);
+          lambdamat(t*m_data_p->m_TT + j) += tmp(m_data_p->m_JJ*t + j);
+          lambdaX(t*m_data_p->m_TT + j) += tmpX(m_data_p->m_JJ*t + j);
         }
       }
       Col <double> inv=trans(m_paramCurrent_p->m_beta[g].row(k));
@@ -162,7 +187,7 @@ void STCXEM::Mstep(){
    stop:
    ;
   
-}
+}*/
 
 void STCXEM::OneEM(const int itermax, const double tol){
   m_degeneracy=0;

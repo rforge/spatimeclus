@@ -32,14 +32,6 @@
 ##' @examples
 ##' data(ech)
 ##' 
-##' output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 1)
-##' 
-##' summary(output)
-##' 
-##' print(output)
-##' 
-##' plot(output) 
-##' 
 NULL
 
 
@@ -48,9 +40,16 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   nbinitSmall <- nbcores * ceiling(nbinitSmall / nbcores) 
   nbinitKept <- nbcores * ceiling(nbinitKept / nbcores) 
+  toollogistic <- cbind(ech@map, rep(1, ech@JJ))
+  for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
+  newtool <- toollogistic
+  if (model@Q>1) for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
+  newtool <- cbind(rep(1, nrow(newtool)), newtool)
+  toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
+  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
   if (is.null(param)){
     param <- list()
-    for (it in 1:nbinitSmall)  param[[it]] <- initparam(ech, model)
+    for (it in 1:nbinitSmall)  param[[it]] <- initparam(ech, model,newtool)
   }
   input <-new("STCresults", 
               model=model, 
@@ -65,10 +64,7 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
                        )
               )
   
-  matT <- t(exp(sweep(log(matrix(1:ech@TT, model@Q+1, ech@TT, byrow=TRUE)), 1, 0:model@Q, "*")))
-  toollogistic <- cbind(ech@map, rep(1, ech@JJ))
-  for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
-  toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
+ # matT <- t(exp(sweep(log(matrix(1:ech@TT, model@Q+1, ech@TT, byrow=TRUE)), 1, 0:model@Q, "*")))
   
   if (nbcores>1){
     paramparallel <- list()
@@ -83,14 +79,15 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
     reference <- mclapply(X = paramparallel,
                           FUN = SpaTimeClusCpp,
                           input=input,
-                          matT=matT, 
+                          matT=newtool, 
                           toollogistic = toollogistic,
                           mc.cores = nbcores, mc.preschedule = TRUE, mc.cleanup = TRUE)
+
     loglike <- rep(-Inf, nbcores)
     for (c in 1:nbcores) loglike[c] <- reference[[c]]@criteria@loglike
     reference <- reference[[which.max(loglike)]]
   }else{
-    reference <- SpaTimeClusCpp(input, param,  matT, toollogistic)
+    reference <- SpaTimeClusCpp(input, param,  newtool, toollogistic)
   }
   return(TuneOutput(reference))
 }
@@ -117,13 +114,6 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
 ##' @examples
 ##' data(ech)
 ##' 
-##' output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 6)
-##' 
-##' summary(output)
-##' 
-##' print(output)
-##' 
-##' plot(output)
 ##' 
 ##' 
 ##' @export
@@ -170,12 +160,17 @@ spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1
 ##'
 ##'
 spatimeclass <- function(ech, model, param){  
-  matT <- t(exp(sweep(log(matrix(1:ech@TT, model@Q+1, ech@TT, byrow=TRUE)), 1, 0:model@Q, "*")))
+
+  
   toollogistic <- cbind(ech@map, rep(1, ech@JJ))
   for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
+  newtool <- toollogistic
+  if (model@Q>1) for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)
+  newtool <- cbind(rep(1, nrow(newtool)), newtool)
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
+  colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
   # Proba post computation
-  proba <- Probacond(ech, model, param, matT, toollogistic)
+  proba <- Probacond(ech, model, param, newtool, toollogistic)
   output<- new("STCresults", model=model, data=ech, param=param, criteria=new("STCcriteria", loglike= sum(log(rowSums(exp(sweep(proba$logcondinter, 1, apply(proba$logcondinter,1, max), "-")))) + apply(proba$logcondinter,1, max))))
   return(TuneOutput(output))
 }

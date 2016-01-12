@@ -45,7 +45,7 @@ setClass(
 ##'
 ##'
 STCmodel <- function(G, K, Q){
-  nbparam <- G*K*(Q+6) - 3*G -1
+  nbparam <- G -1 + (3*Q+2)*K*G + (K-1)*G*4
   return(new("STCmodel", G=G, K=K, Q=Q, nbparam=nbparam))
 }
 
