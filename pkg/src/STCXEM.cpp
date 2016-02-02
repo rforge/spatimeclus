@@ -1,6 +1,6 @@
 #include "STCXEM.h"
 
-STCXEM::STCXEM(const S4 & input, const List & inputparam, const NumericMatrix & matT, const NumericMatrix & toollogistic){
+STCXEM::STCXEM(const S4 & input, const List & inputparam, const NumericMatrix & matT){
   m_data_p = new STCdata( as<S4>(input.slot("data")) );
   m_model_p = new STCmodel( as<S4>(input.slot("model")) );
   m_tune_p = new STCtune( as<S4>(input.slot("tune")) );
@@ -9,13 +9,20 @@ STCXEM::STCXEM(const S4 & input, const List & inputparam, const NumericMatrix & 
   for (int ini=0; ini< m_tune_p->m_nbinitSmall ; ini++) m_paramlist[ini] = STCparam( as<S4>(inputparam[ini]) );
   m_loglikeSmall= ones<vec>(m_tune_p->m_nbinitSmall) * log(0);
   m_matT = as<mat>(matT);
-  m_toollogistic = as<mat>(toollogistic);
-  m_weightlogistic=cube(m_data_p->m_JJ * m_data_p->m_TT, m_model_p->m_K, m_model_p->m_G, fill::zeros);
-  m_condintramargin=cube(m_data_p->m_JJ * m_data_p->m_TT, m_data_p->m_n, m_model_p->m_G, fill::zeros);
-  m_sig.resize(m_model_p->m_G);
-  for (int g=0; g<m_model_p->m_G; g++)  m_sig[g] = cube(m_data_p->m_JJ * m_data_p->m_TT, m_data_p->m_n, m_model_p->m_K, fill::zeros);
+  m_toollogistic = cube( m_data_p->m_JJ, 4, m_data_p->m_TT, fill::zeros);
+  for (int t=0; t<m_data_p->m_TT; t++){
+    m_toollogistic.slice(t).col(0).ones();
+    m_toollogistic.slice(t).col(1) = m_data_p->m_map.col(0);
+    m_toollogistic.slice(t).col(2) = m_data_p->m_map.col(1);
+    m_toollogistic.slice(t).col(3) = t * m_toollogistic.slice(t).col(0);
+  }    
+  m_poidspolynom= mat(m_data_p->m_JJ, m_model_p->m_K, fill::zeros);
   m_tig= mat(m_data_p->m_n, m_model_p->m_G, fill::zeros);
-  m_poidspolynom= mat(m_data_p->m_JJ * m_data_p->m_TT, m_model_p->m_K, fill::zeros);
+  m_sig.resize(m_model_p->m_G);
+  for (int g=0; g<m_model_p->m_G; g++){
+    m_sig[g].resize(m_model_p->m_G);
+    for (int k=0; k<m_model_p->m_K; k++) m_sig[g][k] = cube( m_data_p->m_n, m_data_p->m_JJ, m_data_p->m_TT, fill::zeros);
+  }
   m_hessian=mat(4*(m_model_p->m_K-1), 4*(m_model_p->m_K-1), fill::zeros);
   m_degeneracy = 0;
 }
@@ -41,7 +48,7 @@ void STCXEM::Run(){
     if (m_degeneracy){
       m_loglikeSmall(indices(m_tune_p->m_nbinitSmall - tmp1 - 1))  = -99999999999999999;
     }else{
-     m_loglikeSmall(indices(m_tune_p->m_nbinitSmall - tmp1 - 1)) = ComputeLogLike();
+      m_loglikeSmall(indices(m_tune_p->m_nbinitSmall - tmp1 - 1)) = ComputeLogLike();
     }  
   }
   m_degeneracy=0;
@@ -53,69 +60,63 @@ void STCXEM::Run(){
 
 
 double STCXEM::ComputeLogLike(){
-  double mu=0, loglike=   -99999999999999999;
-  if (m_degeneracy == 0){
-    int repere=0;
-    Mat<double> center=mat(m_data_p->m_JJ*m_data_p->m_TT, m_model_p->m_K, fill::zeros);
-    Mat<double> tmpind=mat(m_data_p->m_JJ, m_data_p->m_n, fill::zeros);
-    m_condintramargin=cube(m_data_p->m_JJ * m_data_p->m_TT, m_data_p->m_n, m_model_p->m_G, fill::zeros);
-    m_tig.each_row() = trans(log(m_paramCurrent_p->m_proportions));
-    for (int g=0; g<m_model_p->m_G;g++){
-      m_poidspolynom = m_toollogistic * trans(m_paramCurrent_p->m_lambda[g]);
-      m_poidspolynom = exp(m_poidspolynom.each_col() - max(m_poidspolynom,1));
-      m_poidspolynom.each_col() /= sum(m_poidspolynom,1);
-      center = m_matT * trans(m_paramCurrent_p->m_beta[g]);
-      for (int k=0; k< m_model_p->m_K; k++){
-        for (int loc=0; loc<center.n_rows; loc++){
-          m_sig[g].slice(k).row(loc) = exp(-0.5 * pow(m_data_p->m_x.row(loc) -  center(loc, k), 2)/m_paramCurrent_p->m_sigma(g,k)) / sqrt( 2*M_PI*m_paramCurrent_p->m_sigma(g,k)) * m_poidspolynom(loc, k);
-          //m_sig[g].subcube(tt*m_data_p->m_JJ, 0, k, (tt+1)*m_data_p->m_JJ-1, m_data_p->m_n -1, k) =  tmpind.each_col() % m_poidspolynom.submat(tt*m_data_p->m_JJ, k, (tt+1)*m_data_p->m_JJ-1, k);
-        } 
-        m_condintramargin.slice(g) += m_sig[g].slice(k);
-      }
-      m_tig.col(g) += trans(sum(log(m_condintramargin.slice(g)),0)) ;
+  m_tig.ones();
+  Col<double> SumProbaRegression = zeros<vec>(m_data_p->m_n);
+  for (int g=0; g<m_model_p->m_G;g++){
+    Mat<double> center = m_matT * trans(m_paramCurrent_p->m_beta[g]);
+    for (int t=0; t<m_data_p->m_TT; t++){
+      for (int j=0; j<m_data_p->m_JJ; j++){  
+        m_poidspolynom =  m_paramCurrent_p->m_lambda[g] * trans(m_toollogistic.slice(t).row(j));
+        m_poidspolynom = exp(m_poidspolynom - max(m_poidspolynom));
+        m_poidspolynom /= sum(m_poidspolynom);
+        SumProbaRegression.zeros();
+        for (int k=0; k< m_model_p->m_K; k++){            
+          m_sig[g][k].slice(t).col(j) = m_poidspolynom(k) * exp(-0.5 * pow(m_data_p->m_x.slice(t).col(j) -  center(t, k), 2)/m_paramCurrent_p->m_sigma(g,k)) / sqrt( 2*M_PI*m_paramCurrent_p->m_sigma(g,k));
+          SumProbaRegression +=  m_sig[g][k].slice(t).col(j);
+        }
+        m_tig.col(g) %=  SumProbaRegression;
+      } 
     }
-    Col<double> maxiclasses = max(m_tig,1);
-    loglike = sum(maxiclasses);
-    m_tig = exp(m_tig.each_col() - maxiclasses);
-    maxiclasses = sum(m_tig,1);
-    loglike=loglike + sum(log(maxiclasses));
+    m_tig.col(g)  *=  m_paramCurrent_p->m_proportions(g);
   }
-  return loglike;
+  Col<double> tmp = sum(m_tig, 1);
+  return sum(log(tmp));
 }
 
 
 void STCXEM::Estep(){
   m_tig = m_tig.each_col() / sum(m_tig,1);
   for (int g=0; g<m_model_p->m_G; g++){
+    Cube<double> Normalise = cube(m_data_p->m_n, m_data_p->m_JJ, m_data_p->m_TT, fill::zeros);
+    for (int k=0; k< m_model_p->m_K; k++) Normalise = Normalise + m_sig[g][k];
+    if (any(m_tig.col(g) ==0)) Normalise.elem(find(Normalise==0)).ones();
     for (int k=0; k< m_model_p->m_K; k++){
-      m_sig[g].slice(k) = m_sig[g].slice(k) /  m_condintramargin.slice(g);
-      m_sig[g].slice(k) = m_sig[g].slice(k).each_row() % trans(m_tig.col(g));
-      if (any(m_tig.col(g) <= 0)) (m_sig[g].slice(k)).elem(find(m_condintramargin.slice(g) <= 0)).zeros();
-      (m_weightlogistic.slice(g)).col(k) = sum(m_sig[g].slice(k),1);
-    }
+      m_sig[g][k] /= Normalise;
+      for (int t=0; t< m_data_p->m_TT; t++) m_sig[g][k].slice(t) = m_sig[g][k].slice(t).each_col() % m_tig.col(g);
+    } 
   }
 }
 
 void STCXEM::NewtonLogitWeighted(const int g){
-  Col<double> u = sum(m_weightlogistic.slice(g), 1);  
+  /*Col<double> u = sum(m_weightlogistic.slice(g), 1);  
   Mat<double> ratioexp = m_toollogistic * trans(m_paramCurrent_p->m_lambda[g]);
   ratioexp = exp(ratioexp.each_col() - max(ratioexp, 1));
   ratioexp.each_col() /= sum(ratioexp,1);
   for (int k1=0; k1< (m_model_p->m_K-1); k1++){
-    for (int k2=k1; k2< (m_model_p->m_K-1); k2++){
-      for (int h1=0; h1 < 4; h1++){
-        for (int h2=0; h2 < 4; h2++){
-          m_hessian(k1*4 + h1, k2*4 + h2) = sum(u % m_toollogistic.col(h1) % m_toollogistic.col(h2) % ratioexp.col(k1+1) % ratioexp.col(k2+1) );
-          m_hessian(k2*4 + h2, k1*4 + h1) = m_hessian(k1*4 + h1, k2*4 + h2);
-        }
-      }
-    }
-    for (int h1=0; h1 < 4; h1++){
-      for (int h2=h1; h2 < 4; h2++){
-        m_hessian(k1*4 + h1, k1*4 + h2) -= sum(u % m_toollogistic.col(h1) % m_toollogistic.col(h2) % ratioexp.col(k1+1));
-        m_hessian(k1*4 + h2, k1*4 + h1) = m_hessian(k1*4 + h1, k1*4 + h2);
-      }
-    }
+  for (int k2=k1; k2< (m_model_p->m_K-1); k2++){
+  for (int h1=0; h1 < 4; h1++){
+  for (int h2=0; h2 < 4; h2++){
+  m_hessian(k1*4 + h1, k2*4 + h2) = sum(u % m_toollogistic.col(h1) % m_toollogistic.col(h2) % ratioexp.col(k1+1) % ratioexp.col(k2+1) );
+  m_hessian(k2*4 + h2, k1*4 + h1) = m_hessian(k1*4 + h1, k2*4 + h2);
+  }
+  }
+  }
+  for (int h1=0; h1 < 4; h1++){
+  for (int h2=h1; h2 < 4; h2++){
+  m_hessian(k1*4 + h1, k1*4 + h2) -= sum(u % m_toollogistic.col(h1) % m_toollogistic.col(h2) % ratioexp.col(k1+1));
+  m_hessian(k1*4 + h2, k1*4 + h1) = m_hessian(k1*4 + h1, k1*4 + h2);
+  }
+  }
   }
   // Maintenant u contient les valeurs de parametres updates en vecteur 
   Col<double> currentparam=trans(vectorise(m_paramCurrent_p->m_lambda[g].rows(1, m_model_p->m_K-1),1));
@@ -123,71 +124,47 @@ void STCXEM::NewtonLogitWeighted(const int g){
   Col<double> gradientautre = vectorise(trans(u % m_toollogistic.each_col()) *  ratioexp.cols(1, m_model_p->m_K-1));
   bool okinversion = solve(u, m_hessian,  gradientcommun - gradientautre, solve_opts::no_approx);
   if (okinversion == 1){
-    u = currentparam - u;
-    for (int k=0; k< (m_model_p->m_K-1); k++) m_paramCurrent_p->m_lambda[g].row(k+1) = trans(u.subvec(k*4, (k*4)+3));
+  u = currentparam - u;
+  for (int k=0; k< (m_model_p->m_K-1); k++) m_paramCurrent_p->m_lambda[g].row(k+1) = trans(u.subvec(k*4, (k*4)+3));
   }else{
-    m_degeneracy = 1;
-  }
+  m_degeneracy = 1;
+  }*/
 }
 
 void STCXEM::Mstep(){
+  cout << "debMstep" << endl;
   m_paramCurrent_p->m_proportions = trans(sum(m_tig,0) / m_data_p->m_n);
   for (int g=0; g<m_model_p->m_G; g++){
     for (int k=0; k< m_model_p->m_K; k++){
+      Col<double> weight = vec(m_data_p->m_TT, fill::ones);
+      Col<double> weightX = vec(m_data_p->m_TT, fill::ones);
+      for (int t=0; t<m_data_p->m_TT; t++){
+        weight(t) = accu(m_sig[g][k].slice(t));
+        weightX(t) = accu(m_data_p->m_x.slice(t) % m_sig[g][k].slice(t));
+      }
       Col <double> inv=trans(m_paramCurrent_p->m_beta[g].row(k));
-      bool okinversion=solve(inv, trans(m_matT) * diagmat(sum(m_sig[g].slice(k), 1)) * m_matT, trans(m_matT) * (sum(m_sig[g].slice(k) % m_data_p->m_x, 1)), solve_opts::no_approx);
+      bool okinversion=solve(inv, trans(m_matT) * diagmat(weight) * m_matT, trans(m_matT) * (weightX), solve_opts::no_approx);
       if (okinversion == 1){
         m_paramCurrent_p->m_beta[g].row(k) = trans(inv);     
       }else{
         m_degeneracy = 1;
         goto stop;
       }
-      Col<double> tmpmean= m_matT * trans(m_paramCurrent_p->m_beta[g].row(k));
-      Col<double> mean= vec( m_data_p->m_TT*m_data_p->m_JJ, fill::zeros);
-      for (int t=0; t< m_data_p->m_TT; t++) mean.subvec(m_data_p->m_JJ*t, m_data_p->m_JJ*(t+1)-1) = vec(m_data_p->m_JJ, fill::ones) * tmpmean(t);
-      m_paramCurrent_p->m_sigma(g,k) = sum( sum(pow(m_data_p->m_x.each_col() - tmpmean, 2) % m_sig[g].slice(k))) / sum( sum(m_sig[g].slice(k)) );
+      Row<double> tmpmean= trans(m_matT * trans(m_paramCurrent_p->m_beta[g].row(k)));
+      for (int t=0; t<m_data_p->m_TT; t++){
+        weight(t) = accu(pow(m_data_p->m_x.slice(t) - tmpmean(t), 2) % m_sig[g][k].slice(t));
+        weightX(t) = accu(m_sig[g][k].slice(t));
+      }
+      m_paramCurrent_p->m_sigma(g,k) = accu(weight) / accu(weightX);
     }
-    if (m_model_p->m_K>1) { NewtonLogitWeighted(g);}
+    //if (m_model_p->m_K>1) { NewtonLogitWeighted(g);}
   }
-   stop:
-   ;
+  stop:
+  ;
   
+  cout << "finMstep" << endl;
 }
 
-/*
-void STCXEM::Mstep(){
-  m_paramCurrent_p->m_proportions = trans(sum(m_tig,0) / m_data_p->m_n);
-  for (int g=0; g<m_model_p->m_G; g++){
-    for (int k=0; k< m_model_p->m_K; k++){
-      Col<double> tmp=sum(m_sig[g].slice(k), 1);
-      Col<double> tmpX = sum(m_sig[g].slice(k) % m_data_p->m_x, 1);
-      Col<double> lambdamat = vec(m_data_p->m_JJ * m_data_p->m_TT, fill::zeros);
-      Col<double> lambdaX= vec(m_data_p->m_JJ * m_data_p->m_TT, fill::zeros);
-      for (int t=0; t< m_data_p->m_TT; t++){
-        for (int j=0; j< m_data_p->m_JJ; j++){
-          lambdamat(t*m_data_p->m_TT + j) += tmp(m_data_p->m_JJ*t + j);
-          lambdaX(t*m_data_p->m_TT + j) += tmpX(m_data_p->m_JJ*t + j);
-        }
-      }
-      Col <double> inv=trans(m_paramCurrent_p->m_beta[g].row(k));
-      bool okinversion=solve(inv, trans(m_matT) * diagmat(lambdamat) * m_matT, trans(m_matT) * lambdaX, solve_opts::no_approx);
-      if (okinversion == 1){
-        m_paramCurrent_p->m_beta[g].row(k) = trans(inv);     
-      }else{
-        m_degeneracy = 1;
-        goto stop;
-      }
-      Col<double> tmpmean= m_matT * trans(m_paramCurrent_p->m_beta[g].row(k));
-      Col<double> mean= vec( m_data_p->m_TT*m_data_p->m_JJ, fill::zeros);
-      for (int t=0; t< m_data_p->m_TT; t++) mean.subvec(m_data_p->m_JJ*t, m_data_p->m_JJ*(t+1)-1) = vec(m_data_p->m_JJ, fill::ones) * tmpmean(t);
-      m_paramCurrent_p->m_sigma(g,k) = sum( sum(pow(m_data_p->m_x.each_col() - mean, 2) % m_sig[g].slice(k))) / sum( sum(m_sig[g].slice(k)) );
-    }
-    if (m_model_p->m_K>1) { NewtonLogitWeighted(g);}
-  }
-   stop:
-   ;
-  
-}*/
 
 void STCXEM::OneEM(const int itermax, const double tol){
   m_degeneracy=0;

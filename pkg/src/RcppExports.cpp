@@ -7,16 +7,15 @@
 using namespace Rcpp;
 
 // SpaTimeClusCpp
-S4 SpaTimeClusCpp(S4 input, List inputparam, NumericMatrix matT, NumericMatrix toollogistic);
-RcppExport SEXP SpaTimeClus_SpaTimeClusCpp(SEXP inputSEXP, SEXP inputparamSEXP, SEXP matTSEXP, SEXP toollogisticSEXP) {
+S4 SpaTimeClusCpp(S4 input, List inputparam, NumericMatrix matT);
+RcppExport SEXP SpaTimeClus_SpaTimeClusCpp(SEXP inputSEXP, SEXP inputparamSEXP, SEXP matTSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< S4 >::type input(inputSEXP);
     Rcpp::traits::input_parameter< List >::type inputparam(inputparamSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type matT(matTSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type toollogistic(toollogisticSEXP);
-    __result = Rcpp::wrap(SpaTimeClusCpp(input, inputparam, matT, toollogistic));
+    __result = Rcpp::wrap(SpaTimeClusCpp(input, inputparam, matT));
     return __result;
 END_RCPP
 }

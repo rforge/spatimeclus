@@ -170,20 +170,33 @@ setClass(
 setClass(
   Class = "STCdata", 
   representation = representation(
-    x="matrix",
+    x="array",
     TT="numeric",
     JJ="numeric",
     n="numeric",
+    m="numeric",
     map="matrix"
   ), 
   prototype = prototype(
-    x=matrix(),
+    x=array(),
     TT=numeric(),
     JJ=numeric(),
     n=numeric(),
+    m=numeric(),
     map=matrix()
   )
 )
+
+BuildSTCdata <- function(x, map, m=1:(dim(x)[3])){
+  di <- dim(x)
+  new("STCdata",
+      x=x,
+      n=di[1],
+      JJ=di[2],
+      TT=di[3],
+      m=m,
+      map=map)
+}
 ###################################################################################
 ##' Constructor of [\code{\linkS4class{STCtune}}] class
 ##'

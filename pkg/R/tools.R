@@ -1,4 +1,4 @@
-initparam <- function(ech, model, newtool){
+initparam <- function(obs, model, matT){
   lambda <- beta <- sigma <- list()
   prop <- runif(model@G)
   prop <-  prop / sum(prop)
@@ -7,29 +7,29 @@ initparam <- function(ech, model, newtool){
     if (model@K>1) lambda[[g]][-1,] <- matrix(runif((model@K-1)*4,min = -1,max = 1), model@K-1, 4)*0
     colnames(lambda[[g]]) <- c("row", "col", "time", "cste")
     rownames(lambda[[g]]) <- paste("polynom", 1:model@K,sep=".")
-    beta[[g]] <- matrix(0, model@K, model@Q*3+1)
-    if (model@Q>0){for (k in 1:model@K) beta[[g]][k,] <- coefficients(lm(ech@x[, sample(1:ncol(ech@x),1)]~newtool+0))}
+    beta[[g]] <- matrix(0, model@K, model@Q+1)
+    for (k in 1:model@K) beta[[g]][k,] <- coefficients(lm(as.numeric(obs@x[sample(1:obs@n,1),sample(1:obs@JJ,1),]) ~ matT+0))
   }
-  sigma <- matrix(max(var(ech@x[,1])), model@G, model@K)
+  sigma <- matrix(max(var(obs@x)), model@G, model@K)
   rownames(sigma) <- names(lambda) <- names(beta) <- names(prop) <- paste("compo", 1:model@G, sep=".")
   colnames(sigma) <- paste("polynom", 1:model@K, sep=".")
   return(new("STCparam", proportions=prop, lambda=lambda, beta=beta, sigma=sigma))
 }
 
-Probacond <- function(ech, model, param, newtool, toollogistic){
-  output <- list(condintra=list(), condintramargin=list(), logcondinter=matrix(0, ech@n, model@G, byrow = TRUE))
+Probacond <- function(obs, model, param, newtool, toollogistic){
+  output <- list(condintra=list(), condintramargin=list(), logcondinter=matrix(0, obs@n, model@G, byrow = TRUE))
   for (g in 1:model@G){
     output$condintra[[g]] <-  list()
-    output$condintramargin[[g]] <- matrix(0, ech@JJ*ech@TT, ech@n)
-    poidspolynom <- matrix(0, ech@TT*ech@JJ, model@K)
+    output$condintramargin[[g]] <- matrix(0, obs@JJ*obs@TT, obs@n)
+    poidspolynom <- matrix(0, obs@TT*obs@JJ, model@K)
     for (k in 1:model@K) poidspolynom[,k] <- toollogistic %*% param@lambda[[g]][k,]
     poidspolynom<- exp(sweep(poidspolynom,1,apply(poidspolynom,1,max), "-"))
     poidspolynom <- poidspolynom / rowSums(poidspolynom)
     
     for (k in 1:model@K){
-      output$condintra[[g]][[k]] <- matrix(NA, nrow(poidspolynom), ncol(ech@x))
+      output$condintra[[g]][[k]] <- matrix(NA, nrow(poidspolynom), ncol(obs@x))
       for (loc in 1:nrow(poidspolynom)){
-        output$condintra[[g]][[k]][loc,] <- poidspolynom[loc,k] * dnorm(ech@x[loc,], mean = sum(newtool[loc,] * param@beta[[g]][k,]) , sd = sqrt(param@sigma[g,k]))
+        output$condintra[[g]][[k]][loc,] <- poidspolynom[loc,k] * dnorm(obs@x[loc,], mean = sum(newtool[loc,] * param@beta[[g]][k,]) , sd = sqrt(param@sigma[g,k]))
       } 
       output$condintramargin[[g]] <- output$condintramargin[[g]] + output$condintra[[g]][[k]]
     }  

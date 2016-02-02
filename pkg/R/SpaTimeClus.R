@@ -30,36 +30,32 @@
 ##' @references Marbac M., and McNicholas P. 
 ##' 
 ##' @examples
-##' data(ech)
+##' data(obs)
 ##' 
 NULL
 
 
 
-spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
+spatimeclusModelKnown <- function(obs, model, tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   nbinitSmall <- nbcores * ceiling(nbinitSmall / nbcores) 
   nbinitKept <- nbcores * ceiling(nbinitKept / nbcores) 
-  toollogistic <- cbind(ech@map, rep(1, ech@JJ))
-  for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
-  
-  if (model@Q>0){
-    newtool <- toollogistic
-    if (model@Q>1){for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
-    newtool <- cbind(rep(1, nrow(newtool)), newtool)
-    colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),model@Q), ".deg", rep(1:model@Q, each=3), sep=""))  
-  }else{
-    newtool <- matrix(1, nrow(toollogistic), 1)
-  }
-  toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
 
+  if (model@Q>0){
+    matT <- matrix(obs@m, obs@TT, 1)
+    if (model@Q>1) {for (q in 2:model@Q) matT <- cbind(matT, obs@m ** q)}
+    matT <- cbind(rep(1, obs@TT), matT)
+  }else{
+    matT <- matrix(1, obs@TT, 1)
+  }
+  matT[-1,] <- matT[-1,] - matT[-obs@TT,] 
   if (is.null(param)){
     param <- list()
-    for (it in 1:nbinitSmall)  param[[it]] <- initparam(ech, model,newtool)
+    for (it in 1:nbinitSmall)  param[[it]] <- initparam(obs, model, matT)
   }
   input <-new("STCresults", 
               model=model, 
-              data=ech, 
+              data=obs, 
               criteria=new("STCcriteria", loglike= -Inf),
               tune=new("STCtune", 
                        tol=tol, 
@@ -68,10 +64,7 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
                        nbiterSmall=nbiterSmall, 
                        nbiterKept=nbiterKept
                        )
-              )
-  
- # matT <- t(exp(sweep(log(matrix(1:ech@TT, model@Q+1, ech@TT, byrow=TRUE)), 1, 0:model@Q, "*")))
-  
+              )  
   if (nbcores>1){
     paramparallel <- list()
     compteur <- 0
@@ -86,23 +79,27 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
                           FUN = SpaTimeClusCpp,
                           input=input,
                           matT=newtool, 
-                          toollogistic = toollogistic,
                           mc.cores = nbcores, mc.preschedule = TRUE, mc.cleanup = TRUE)
 
     loglike <- rep(-Inf, nbcores)
     for (c in 1:nbcores) loglike[c] <- reference[[c]]@criteria@loglike
     reference <- reference[[which.max(loglike)]]
   }else{
-    reference <- SpaTimeClusCpp(input, param,  newtool, toollogistic)
+    print("deb")
+    
+    reference <- SpaTimeClusCpp(input, param,  matT)
+    print("fin")
+    
   }
-  return(TuneOutput(reference))
+  #return(TuneOutput(reference))
+  return(reference)
 }
 
 ###################################################################################
 ##' This function performs the maximum likelihood estimation for a known model in clustering
 ##'
 ##' 
-##' @param ech \linkS4class{STCdata} It contains the observations to cluster (mandatory). 
+##' @param obs \linkS4class{STCdata} It contains the observations to cluster (mandatory). 
 ##' @param G numeric. It defines possible numbers of components.
 ##' @param K numeric. It defines possible numbers of regressions per components
 ##' @param Q numeric. It defines possible degrees of regressions.
@@ -118,14 +115,14 @@ spatimeclusModelKnown <- function(ech, model, tol=0.1, param=NULL, nbcores=1, nb
 ##'  
 ##' @return Returns an instance of \linkS4class{STCresults}.
 ##' @examples
-##' data(ech)
+##' data(obs)
 ##' 
 ##' 
 ##' 
 ##' @export
 ##'
 ##'
-spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){ 
+spatimeclus <- function(obs, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){ 
   if (nbinitSmall<nbinitKept) nbinitKept <- nbinitSmall
   listmodels <- list()
   for (g in G){
@@ -135,11 +132,12 @@ spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1
       }
     }
   }
+  for (i in 1:obs@n) obs@x[i,,-1] <- obs@x[i,,-1] - obs@x[i,,-obs@TT]
   results <- list()
   allcrit <- rep(-Inf, length(results))
   for (it in 1:length(listmodels)){
     #cat("model ", it, "\n")
-    results[[it]] <- spatimeclusModelKnown(ech, listmodels[[it]], tol, param, nbcores, nbinitSmall, nbinitKept, nbiterSmall, nbiterKept)
+    results[[it]] <- spatimeclusModelKnown(obs, listmodels[[it]], tol, param, nbcores, nbinitSmall, nbinitKept, nbiterSmall, nbiterKept)
     if (crit=="BIC"){
       allcrit[it] <- results[[it]]@criteria@BIC
     }else if (crit=="AIC"){
@@ -148,7 +146,8 @@ spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1
       allcrit[it] <- results[[it]]@criteria@ICL      
     }
   }
-  return(results[[which.max(allcrit)]])
+  #return(results[[which.max(allcrit)]])
+  return(results[[1]])
 }
 
 
@@ -156,7 +155,7 @@ spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1
 ##' This function performs classifies a sample 
 ##'
 ##' 
-##' @param ech \linkS4class{STCdata} It contains the observations to classify (mandatory). 
+##' @param obs \linkS4class{STCdata} It contains the observations to classify (mandatory). 
 ##' @param model \linkS4class{STCmodel}. It defines the model at hand (mandatory).
 ##' @param param list of \linkS4class{STCparam}. It gives the model parameters (mandatory).
 ##' 
@@ -165,11 +164,11 @@ spatimeclus <- function(ech, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1
 ##' @export
 ##'
 ##'
-spatimeclass <- function(ech, model, param){  
+spatimeclass <- function(obs, model, param){  
 
   
-  toollogistic <- cbind(ech@map, rep(1, ech@JJ))
-  for (tt in 2:ech@TT)    toollogistic <- rbind(toollogistic, cbind(ech@map, rep(tt,  ech@JJ)))
+  toollogistic <- cbind(obs@map, rep(1, obs@JJ))
+  for (tt in 2:obs@TT)    toollogistic <- rbind(toollogistic, cbind(obs@map, rep(tt,  obs@JJ)))
   if (model@Q>1){
     newtool <- toollogistic
     if (model@Q>1){for (q in 2:model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
@@ -180,7 +179,7 @@ spatimeclass <- function(ech, model, param){
   }
   toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
   # Proba post computation
-  proba <- Probacond(ech, model, param, newtool, toollogistic)
-  output<- new("STCresults", model=model, data=ech, param=param, criteria=new("STCcriteria", loglike= sum(log(rowSums(exp(sweep(proba$logcondinter, 1, apply(proba$logcondinter,1, max), "-")))) + apply(proba$logcondinter,1, max))))
+  proba <- Probacond(obs, model, param, newtool, toollogistic)
+  output<- new("STCresults", model=model, data=obs, param=param, criteria=new("STCcriteria", loglike= sum(log(rowSums(exp(sweep(proba$logcondinter, 1, apply(proba$logcondinter,1, max), "-")))) + apply(proba$logcondinter,1, max))))
   return(TuneOutput(output))
 }
