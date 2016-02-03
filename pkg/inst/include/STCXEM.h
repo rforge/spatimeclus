@@ -17,12 +17,12 @@ class STCXEM{
   vector<STCparam> m_paramlist ;
   Col<double> m_loglikeSmall ;
   
-  Mat<double> m_matT, m_tig, m_poidspolynom, m_hessian;
-  Cube<double>  m_toollogistic;
-  //Cube<double>  m_weightlogistic, m_condintramargin;
+  Mat<double> m_matT, m_tig, m_hessian;
+  Col<double> m_poidspolynom;
+  Cube<double>  m_Mjte;
   vector< vector < Cube<double> > >  m_sig ;
   
-  bool m_degeneracy;
+  bool m_nondegeneracy;
   
   STCXEM(){};
   STCXEM(const S4 &, const List &, const NumericMatrix &);

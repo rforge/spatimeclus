@@ -43,45 +43,27 @@ TuneOutput <- function(output){
   output@param@proportions <- as.numeric(output@param@proportions)
   for (g in 1:output@model@G){
     output@param@lambda[[g]] <- matrix(output@param@lambda[[g]], output@model@K, 4)
-    colnames(output@param@lambda[[g]]) <- c("coordinate1", "coordinate2", "time", "intercept")
-    output@param@beta[[g]] <- matrix(output@param@beta[[g]], output@model@K, output@model@Q*3+1)
-    if (output@model@Q>1) colnames(output@param@beta[[g]]) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))
+    colnames(output@param@lambda[[g]]) <- c("intercept", "coordinate1", "coordinate2", "time")
+    output@param@beta[[g]] <- matrix(output@param@beta[[g]], output@model@K, output@model@Q+1)
+    colnames(output@param@beta[[g]]) <- paste("deg.", rep(0:output@model@Q), sep="")
     rownames(output@param@lambda[[g]]) <- rownames(output@param@beta[[g]]) <- paste("polynom", 1:output@model@K, sep=".")
   }
   names(output@param@beta) <- names(output@param@lambda) <- paste("component", 1:output@model@G, sep=".")
-  toollogistic <- cbind(output@data@map, rep(1, output@data@JJ))
-  for (tt in 2:output@data@TT)    toollogistic <- rbind(toollogistic, cbind(output@data@map, rep(tt,  output@data@JJ)))
-  if (output@model@Q>0){
-    newtool <- toollogistic
-    if (output@model@Q>1) {for (q in 2:output@model@Q) newtool <- cbind(newtool,newtool[,1:3]**q)}
-    newtool <- cbind(rep(1, nrow(newtool)), newtool)
-    colnames(newtool) <- c("cste",paste(rep(c("spa1","spa2","tps"),output@model@Q), ".deg", rep(1:output@model@Q, each=3), sep=""))  
-  }else{
-    newtool <- matrix(1, nrow(toollogistic), 1)
-  }
-  toollogistic <- cbind(toollogistic, rep(1, nrow(toollogistic)))
-  proba <- Probacond(output@data, output@model, output@param, newtool, toollogistic)
-  sig <- weightlogistic <-list()
   for (g in 1:output@model@G){
-    sig[[g]] <- list()
-    weightlogistic[[g]]  <- matrix(0, output@data@JJ*output@data@TT, output@model@K)
     for (k in 1:output@model@K) names(output@param@beta[[g]][k,]) <- paste("coeff", 0:(length(output@param@beta[[g]][k,])-1), sep=".")
   }  
-  
-  output@partitions@hardseg <- list()
-  for (g in 1:output@model@G){
-    output@partitions@hardseg[[g]] <- matrix(apply(exp(toollogistic %*% t(output@param@lambda[[g]])), 1, which.max), output@data@JJ, output@data@TT)
-    colnames(output@partitions@hardseg[[g]]) <- paste("time", 1:output@data@TT, sep=".")
-    rownames(output@partitions@hardseg[[g]]) <- paste("site", 1:output@data@JJ, sep=".")
-  }
-  names(output@partitions@hardseg) <- paste("comp", 1:output@model@G, sep=".")
-  
-  
-  output@partitions@fuzzyind <- exp(sweep(proba$logcondinter, 1, apply(proba$logcondinter,1, max), "-"))
-  output@partitions@fuzzyind  <- output@partitions@fuzzyind  / rowSums(output@partitions@fuzzyind )
-  output@partitions@hardind <- apply(output@partitions@fuzzyind, 1, which.max) 
-  names(output@partitions@hardind) <- rownames(output@partitions@fuzzyind) <- colnames(output@data@x)
-  colnames(output@partitions@fuzzyind) <- paste("comp", 1:output@model@G, sep=".")
+#   output@partitions@hardseg <- list()
+#   for (g in 1:output@model@G){
+#     output@partitions@hardseg[[g]] <- matrix(apply(exp(toollogistic %*% t(output@param@lambda[[g]])), 1, which.max), output@data@JJ, output@data@TT)
+#     colnames(output@partitions@hardseg[[g]]) <- paste("time", 1:output@data@TT, sep=".")
+#     rownames(output@partitions@hardseg[[g]]) <- paste("site", 1:output@data@JJ, sep=".")
+#   }
+#   names(output@partitions@hardseg) <- paste("comp", 1:output@model@G, sep=".")
+
+   output@partitions@hardind <- apply(output@partitions@fuzzyind, 1, which.max)
+   names(output@partitions@hardind) <- rownames(output@partitions@fuzzyind) <- colnames(output@data@x)
+   colnames(output@partitions@fuzzyind) <- paste("comp", 1:output@model@G, sep=".")
+   
   output@criteria@AIC <- output@criteria@loglike - output@model@nbparam
   output@criteria@BIC <- output@criteria@loglike - 0.5 * output@model@nbparam * log(output@data@n)
   rownames(output@param@sigma) <- paste("component", 1:output@model@G, sep=".")

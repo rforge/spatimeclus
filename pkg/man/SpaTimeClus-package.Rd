@@ -21,15 +21,7 @@ todo
 todo
 }
 \examples{
-data(ech)
-
-output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 6)
-
-summary(output)
-
-print(output)
-
-plot(output) 
+data(obs)
 
 }
 \author{

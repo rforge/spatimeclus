@@ -186,7 +186,21 @@ setClass(
     map=matrix()
   )
 )
-
+###################################################################################
+##' Constructors of the class \linkS4class{STCdata}
+##'
+##' 
+##' @param x array It contains the observations to cluster where the dimesions are respectively: number of the observation, site of the observation, time of the observation. 
+##' @param map matrix. It gives the spatial coordiantes of each site.
+##' @param m numeric. It indicates the moments of observations.
+##'  
+##' @return Returns an instance of \linkS4class{STCdata}.
+##' 
+##' 
+##' 
+##' @export
+##'
+##'
 BuildSTCdata <- function(x, map, m=1:(dim(x)[3])){
   di <- dim(x)
   new("STCdata",

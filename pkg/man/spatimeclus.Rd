@@ -4,12 +4,12 @@
 \alias{spatimeclus}
 \title{This function performs the maximum likelihood estimation for a known model in clustering}
 \usage{
-spatimeclus(ech, G, K, Q, crit = "BIC", tol = 0.1, param = NULL,
+spatimeclus(obs, G, K, Q, crit = "BIC", tol = 0.1, param = NULL,
   nbcores = 1, nbinitSmall = 100, nbinitKept = 10, nbiterSmall = 10,
   nbiterKept = 500)
 }
 \arguments{
-\item{ech}{\linkS4class{STCdata} It contains the observations to cluster (mandatory).}
+\item{obs}{\linkS4class{STCdata} It contains the observations to cluster (mandatory).}
 
 \item{G}{numeric. It defines possible numbers of components.}
 
@@ -40,15 +40,8 @@ Returns an instance of \linkS4class{STCresults}.
 This function performs the maximum likelihood estimation for a known model in clustering
 }
 \examples{
-data(ech)
+data(obs)
 
-output <- spatimeclus(ech = ech, G = 2, K = 2, Q = 2, crit = "BIC", nbcores = 6)
-
-summary(output)
-
-print(output)
-
-plot(output)
 
 
 }
