@@ -11,6 +11,7 @@ initparam <- function(obs, model, matT){
     for (k in 1:model@K) beta[[g]][k,] <- coefficients(lm(as.numeric(obs@x[sample(1:obs@n,1),sample(1:obs@JJ,1),]) ~ matT+0))
   }
   sigma <- matrix(max(var(obs@x)), model@G, model@K)
+  #print(sigma)
   rownames(sigma) <- names(lambda) <- names(beta) <- names(prop) <- paste("compo", 1:model@G, sep=".")
   colnames(sigma) <- paste("polynom", 1:model@K, sep=".")
   return(new("STCparam", proportions=prop, lambda=lambda, beta=beta, sigma=sigma))

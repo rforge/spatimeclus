@@ -4,18 +4,20 @@
 \alias{spatimeclus}
 \title{This function performs the maximum likelihood estimation for a known model in clustering}
 \usage{
-spatimeclus(obs, G, K, Q, crit = "BIC", tol = 0.1, param = NULL,
-  nbcores = 1, nbinitSmall = 100, nbinitKept = 10, nbiterSmall = 10,
-  nbiterKept = 500)
+spatimeclus(obs, G, K, Q, map = map, m = 1:(dim(obs)[3]), crit = "BIC",
+  tol = 0.1, param = NULL, nbcores = 1, nbinitSmall = 100,
+  nbinitKept = 10, nbiterSmall = 10, nbiterKept = 500)
 }
 \arguments{
-\item{obs}{\linkS4class{STCdata} It contains the observations to cluster (mandatory).}
-
 \item{G}{numeric. It defines possible numbers of components.}
 
 \item{K}{numeric. It defines possible numbers of regressions per components}
 
 \item{Q}{numeric. It defines possible degrees of regressions.}
+
+\item{map}{matrix. It gives the spatial coordiantes of each site.}
+
+\item{m}{numeric. It indicates the moments of observations.}
 
 \item{crit}{character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").}
 
@@ -32,6 +34,8 @@ spatimeclus(obs, G, K, Q, crit = "BIC", tol = 0.1, param = NULL,
 \item{nbiterSmall}{numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 10).}
 
 \item{nbiterKept}{numeric. It defines the maximum number of iterations before to stop the algorith; (optional, default is 500).}
+
+\item{x}{array It contains the observations to cluster where the dimesions are respectively: number of the observation, site of the observation, time of the observation.}
 }
 \value{
 Returns an instance of \linkS4class{STCresults}.

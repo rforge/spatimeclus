@@ -61,11 +61,12 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ###################################################################################
 ##' This function performs the maximum likelihood estimation for a known model in clustering
 ##'
-##' 
-##' @param obs \linkS4class{STCdata} It contains the observations to cluster (mandatory). 
+##' @param x array It contains the observations to cluster where the dimesions are respectively: number of the observation, site of the observation, time of the observation.  
 ##' @param G numeric. It defines possible numbers of components.
 ##' @param K numeric. It defines possible numbers of regressions per components
 ##' @param Q numeric. It defines possible degrees of regressions.
+##' @param map matrix. It gives the spatial coordiantes of each site.
+##' @param m numeric. It indicates the moments of observations.
 ##' @param crit character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").
 ##' @param tol numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.1).
 ##' @param param list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional).
@@ -85,7 +86,8 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' @export
 ##'
 ##'
-spatimeclus <- function(obs, G, K, Q, crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
+spatimeclus <- function(obs, G, K, Q, map=map, m=1:(dim(obs)[3]), crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
+  obs <- BuildSTCdata(obs, map, m=1:(dim(obs)[3]))
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   if (nbinitSmall<nbinitKept) nbinitKept <- nbinitSmall
   listmodels <- list()
