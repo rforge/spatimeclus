@@ -86,15 +86,16 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' @export
 ##'
 ##'
-spatimeclus <- function(obs, G, K, Q, map=map, m=1:(dim(obs)[3]), crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
-  obs <- BuildSTCdata(obs, map, m=1:(dim(obs)[3]))
+spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
+  obs <- BuildSTCdata(obs, map, m=m)
+  
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   if (nbinitSmall<nbinitKept) nbinitKept <- nbinitSmall
   listmodels <- list()
   for (g in G){
     for (k in K){
       for (q in Q){
-        listmodels[[length(listmodels)+1]] <- STCmodel(g, k, q)
+        listmodels[[length(listmodels)+1]] <- STCmodel(g, k, q, is.null(map))
       }
     }
   }

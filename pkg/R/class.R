@@ -22,12 +22,14 @@ setClass(
     G="numeric",
     K="numeric",
     Q="numeric",
+    spatial="numeric",
     nbparam="numeric"
   ), 
   prototype = prototype(
     G=numeric(),
     K=numeric(),
     Q=numeric(),
+    spatial=numeric(),
     nbparam=numeric()
   )
 )
@@ -44,9 +46,13 @@ setClass(
 ##' @export
 ##'
 ##'
-STCmodel <- function(G, K, Q){
-  nbparam <- G -1 + (3*Q+2)*K*G + (K-1)*G*4
-  return(new("STCmodel", G=G, K=K, Q=Q, nbparam=nbparam))
+STCmodel <- function(G, K, Q, nospatial){
+  if (nospatial == 0){
+    nbparam <- G -1 + (Q+2)*K*G + (K-1)*G*4    
+  }else{
+    nbparam <- G -1 + (Q+2)*K*G + (K-1)*G*2        
+  }
+  return(new("STCmodel", G=G, K=K, Q=Q, spatial=1-nospatial, nbparam=nbparam))
 }
 
 ###################################################################################
@@ -203,13 +209,12 @@ setClass(
 ##'
 BuildSTCdata <- function(x, map, m=1:(dim(x)[3])){
   di <- dim(x)
-  new("STCdata",
-      x=x,
-      n=di[1],
-      JJ=di[2],
-      TT=di[3],
-      m=m,
-      map=map)
+  if (is.null(map)){
+    output <- new("STCdata", x=x, n=di[1], JJ=di[2], TT=di[3], m=m)
+  }else{
+    output <- new("STCdata", x=x, n=di[1], JJ=di[2], TT=di[3], m=m, map=map)
+  }
+  return(output)
 }
 ###################################################################################
 ##' Constructor of [\code{\linkS4class{STCtune}}] class

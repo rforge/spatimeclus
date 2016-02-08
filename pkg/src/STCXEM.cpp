@@ -16,6 +16,7 @@ STCXEM::STCXEM(const S4 & input, const List & inputparam, const NumericMatrix & 
     m_sig[g].resize(m_model_p->m_K);
     for (int k=0; k<m_model_p->m_K; k++) m_sig[g][k] = cube( m_data_p->m_n, m_data_p->m_JJ, m_data_p->m_TT, fill::zeros);
   }
+  
   m_hessian=mat(4*(m_model_p->m_K-1), 4*(m_model_p->m_K-1), fill::zeros);
   m_Mjte= cube(m_data_p->m_JJ, m_data_p->m_TT, 4, fill::ones); 
   m_Mjte.slice(1).each_col() =  m_data_p->m_map.col(0);
