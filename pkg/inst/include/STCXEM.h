@@ -9,7 +9,7 @@
 
 class STCXEM{
   public:
-  STCdata * m_data_p ;
+    STCdata * m_data_p ;
   STCmodel * m_model_p ;
   STCtune * m_tune_p ;
   STCparam * m_paramCurrent_p ; 
@@ -25,16 +25,18 @@ class STCXEM{
   bool m_nondegeneracy;
   
   STCXEM(){};
-  STCXEM(const S4 &, const List &, const NumericMatrix &);
+  //STCXEM(const S4 &, const List &, const NumericMatrix &);
   ~STCXEM(){};  
   
-  void Run();
-  void SwitchParamCurrent(int);
-  double ComputeLogLike();
   void Estep();
-  void Mstep();
-  void OneEM(const int, const double);
-  void NewtonLogitWeighted(const int);
   void Output(S4 *);
+  void Run();
+  void SwitchParamCurrent(int ini){m_paramCurrent_p = &m_paramlist[ini];}
+  void OneEM(const int, const double);
+
+  
+  virtual double ComputeLogLike()=0;
+  virtual void Mstep()=0;
+  virtual void NewtonLogitWeighted(const int)=0;
 };
 #endif

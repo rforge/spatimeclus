@@ -24,7 +24,8 @@ setMethod(
     cat("Data: \n")
     cat("  sample size:      ", object@data@n, "\n")
     cat("  time grid size:   ", object@data@TT, "\n")
-    cat("  spatial grid size:", object@data@JJ, "(with", max(object@data@map[,1]), "rows and", max(object@data@map[,2]),"cols)\n")
+    cat("  number of sites:", object@data@JJ, "\n")  
+
     cat("\n")
     cat("****************************************************************************************\n")
     cat("Model: \n")  
@@ -32,7 +33,9 @@ setMethod(
     cat("  number of polynoms per component: ", object@model@K, "\n")
     cat("  degrees of polynoms:              ", object@model@Q, "\n")
     cat("  number of parameters:             ", object@model@nbparam, "\n")
-
+    if (object@model@spatial) cat("  Spatial dependencies are modelled for each component.\n")
+    if (object@model@spatial==0) cat("  Spatial dependencies are not modelled for each component.\n")
+    
     cat("\n")
     cat("****************************************************************************************\n")
     cat("Criteria: \n")  
