@@ -68,11 +68,11 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' @param map matrix. It gives the spatial coordiantes of each site.
 ##' @param m numeric. It indicates the moments of observations.
 ##' @param crit character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").
-##' @param tol numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.1).
+##' @param tol numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.01).
 ##' @param param list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional).
 ##' @param nbcores numeric.  It defines the numerber of cores used by the alogrithm, only for Linux and Mac (optional, default is 1).
-##' @param nbinitSmall numeric. It defines the number of random initializations (optional, default is 100).
-##' @param nbinitKept numeric. It defines the number of chains estimated until convergence (optional, default is 10).
+##' @param nbinitSmall numeric. It defines the number of random initializations (optional, default is 500).
+##' @param nbinitKept numeric. It defines the number of chains estimated until convergence (optional, default is 30).
 ##' @param nbiterSmall numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 10).
 ##' @param nbiterKept numeric. It defines the maximum number of iterations before to stop the algorith; (optional, default is 500).
 ##' 
@@ -86,9 +86,8 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' @export
 ##'
 ##'
-spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", tol=0.1, param=NULL, nbcores=1, nbinitSmall=100, nbinitKept=10, nbiterSmall=10, nbiterKept=500){
+spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", tol=0.01, param=NULL, nbcores=1, nbinitSmall=500, nbinitKept=30, nbiterSmall=10, nbiterKept=500){
   obs <- BuildSTCdata(obs, map, m=m)
-  
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   if (nbinitSmall<nbinitKept) nbinitKept <- nbinitSmall
   listmodels <- list()

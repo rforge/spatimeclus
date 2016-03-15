@@ -35,7 +35,7 @@ void STCXEM::OneEM(const int itermax, const double tol){
     if (m_nondegeneracy==1){
       prec = loglike;
       loglike = ComputeLogLike();
-      if (loglike< (prec-tol)) cout << "Error in EM algorithm (loglikelihood decreases)" << endl << "diff: "<< loglike - prec<< " loglike: " << loglike<< " prec: " << prec << " tol" << tol << " iteration " << it << endl;
+     // if (loglike< (prec-tol)) cout << "Error in EM algorithm (loglikelihood decreases)" << endl << "diff: "<< loglike - prec<< " loglike: " << loglike<< " prec: " << prec << " tol" << tol << " iteration " << it << endl;
     }else{
       loglike = log(0);
     }
@@ -43,27 +43,34 @@ void STCXEM::OneEM(const int itermax, const double tol){
 }
 
 void STCXEM::Run(){  
+  int cpdegeneracy=0;
   for (int ini=0; ini< m_tune_p->m_nbinitSmall ; ini++){
     SwitchParamCurrent(ini);
     OneEM(m_tune_p->m_nbiterSmall, m_tune_p->m_tol);
     m_loglikeSmall(ini) = ComputeLogLike();  
+    cpdegeneracy = 1 - m_nondegeneracy;
   }
-  int cpdegeneracy=0;
+  //cout << "nb degenerate" << cpdegeneracy << endl;
+  
   uvec indices = sort_index(m_loglikeSmall);
-  for (int tmp1=0; tmp1< m_tune_p->m_nbinitKept; tmp1++){
+  int tmp1=0;
+  cpdegeneracy=0;
+  while (tmp1< min(m_tune_p->m_nbinitKept+cpdegeneracy, m_tune_p->m_nbinitSmall)){
     SwitchParamCurrent(indices(m_tune_p->m_nbinitSmall - tmp1 - 1));
     OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
     m_loglikeSmall(indices(m_tune_p->m_nbinitSmall - tmp1 - 1)) = ComputeLogLike(); 
-    cpdegeneracy = 1 - m_nondegeneracy;
+    cpdegeneracy += 1 - m_nondegeneracy;
+    tmp1++;
   }
-  if (cpdegeneracy == m_tune_p->m_nbinitKept){
-    cout << "all degenerate" << endl;
-  }else{
-    uword  index;
-    double indicebest = (m_loglikeSmall).max(index);
-    SwitchParamCurrent(index);
-    OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
+  if (cpdegeneracy >= m_tune_p->m_nbinitKept/2){
+    //cout << "all degenerate" << endl;
+  }else{    
     indices = sort_index(m_loglikeSmall);
-  }  
+    SwitchParamCurrent(indices(m_tune_p->m_nbinitSmall  - 1));
+    OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
+  }
+  cout << trans(m_loglikeSmall) << endl<< endl;
+  //cout << max(m_loglikeSmall) << endl;
+  cout << "nb degenerate" << cpdegeneracy << endl<< endl;
 }
 

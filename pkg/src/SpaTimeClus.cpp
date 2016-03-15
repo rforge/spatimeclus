@@ -15,4 +15,4 @@ S4  SpaTimeClusCpp(S4 input, List inputparam, NumericMatrix matT){
     xem.Output(input_p);
   }
   return input;
-}   
+}    
