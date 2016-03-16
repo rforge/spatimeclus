@@ -16,6 +16,7 @@ void STCXEM::Estep(){
 
 void STCXEM::Output(S4 * reference_p){
   as<S4>(reference_p->slot("criteria")).slot("loglike") = wrap(ComputeLogLike());
+  as<S4>(reference_p->slot("criteria")).slot("degeneracy") = wrap(cpdegeneracy);
   as<S4>(reference_p->slot("param")).slot("proportions") = wrap(trans(m_paramCurrent_p->m_proportions));
   as<S4>(reference_p->slot("param")).slot("lambda") = wrap(m_paramCurrent_p->m_lambda);
   as<S4>(reference_p->slot("param")).slot("sigma") = wrap(m_paramCurrent_p->m_sigma);
@@ -43,7 +44,7 @@ void STCXEM::OneEM(const int itermax, const double tol){
 }
 
 void STCXEM::Run(){  
-  int cpdegeneracy=0;
+  cpdegeneracy=0;
   for (int ini=0; ini< m_tune_p->m_nbinitSmall ; ini++){
     SwitchParamCurrent(ini);
     OneEM(m_tune_p->m_nbiterSmall, m_tune_p->m_tol);
@@ -53,24 +54,21 @@ void STCXEM::Run(){
   //cout << "nb degenerate" << cpdegeneracy << endl;
   
   uvec indices = sort_index(m_loglikeSmall);
-  int tmp1=0;
+  double tmp1=0;
   cpdegeneracy=0;
-  while (tmp1< min(m_tune_p->m_nbinitKept+cpdegeneracy, m_tune_p->m_nbinitSmall)){
+  while (tmp1< m_tune_p->m_nbinitKept){ 
+    //while (tmp1< min(m_tune_p->m_nbinitKept+cpdegeneracy, maxikeep)){
     SwitchParamCurrent(indices(m_tune_p->m_nbinitSmall - tmp1 - 1));
     OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
     m_loglikeSmall(indices(m_tune_p->m_nbinitSmall - tmp1 - 1)) = ComputeLogLike(); 
     cpdegeneracy += 1 - m_nondegeneracy;
     tmp1++;
   }
-  if (cpdegeneracy >= m_tune_p->m_nbinitKept/2){
-    //cout << "all degenerate" << endl;
-  }else{    
+  if (cpdegeneracy != m_tune_p->m_nbinitSmall){  
     indices = sort_index(m_loglikeSmall);
     SwitchParamCurrent(indices(m_tune_p->m_nbinitSmall  - 1));
-    OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
+    //OneEM(m_tune_p->m_nbiterKept, m_tune_p->m_tol);
   }
-  cout << trans(m_loglikeSmall) << endl<< endl;
-  //cout << max(m_loglikeSmall) << endl;
-  cout << "nb degenerate" << cpdegeneracy << endl<< endl;
+  cpdegeneracy = cpdegeneracy / tmp1;
 }
 

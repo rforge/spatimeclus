@@ -21,6 +21,7 @@ class STCXEM{
   Col<double> m_poidspolynom;
   Cube<double>  m_Mjte;
   vector< vector < Cube<double> > >  m_sig ;
+  double cpdegeneracy;
   
   bool m_nondegeneracy;
   

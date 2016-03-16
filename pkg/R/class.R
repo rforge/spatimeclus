@@ -113,13 +113,15 @@ setClass(
     loglike="numeric",
     AIC="numeric",
     BIC="numeric",
-    ICL="numeric"
+    ICL="numeric",
+    degeneracy="numeric"
   ), 
   prototype = prototype(
     loglike=numeric(),
     AIC=numeric(),
     BIC=numeric(),
-    ICL=numeric()
+    ICL=numeric(),
+    degeneracy=numeric()
   )
 )
 
@@ -263,6 +265,7 @@ setClass(
 ##'   \item{criteria}{\linkS4class{STCcriteria}. It contains the elements relied to the information criteria.}
 ##'   \item{partitions}{\linkS4class{STCpartitions}. It contains the elements relied to the partitions.}
 ##'   \item{tune}{\linkS4class{STCtune}. It contains the tunning parameters of the algorithm.}
+##'   \item{allmodels}{matrix. list of the estimnated models and their information criterion.}
 ##' }
 ##'
 ##' @examples
@@ -280,7 +283,8 @@ setClass(
     param="STCparam",
     criteria="STCcriteria",
     partitions="STCpartitions",
-    tune="STCtune"
+    tune="STCtune",
+    allmodels="matrix"
   ), 
   prototype = prototype(
     model=new("STCmodel"),
@@ -288,6 +292,7 @@ setClass(
     param=new("STCparam"),
     criteria=new("STCcriteria"),
     partitions=new("STCpartitions"),
-    tune=new("STCtune")
+    tune=new("STCtune"),
+    allmodels=matrix()
   )
 )

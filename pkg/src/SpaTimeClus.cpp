@@ -1,6 +1,6 @@
 #include "STCXEMspatial.h"
 #include "STCXEMnonspatial.h"
-
+ 
 //[[Rcpp::export]]
 S4  SpaTimeClusCpp(S4 input, List inputparam, NumericMatrix matT){
   S4 * input_p=&input;
@@ -15,4 +15,4 @@ S4  SpaTimeClusCpp(S4 input, List inputparam, NumericMatrix matT){
     xem.Output(input_p);
   }
   return input;
-}    
+}     

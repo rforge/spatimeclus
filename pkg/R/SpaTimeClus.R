@@ -86,15 +86,19 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' @export
 ##'
 ##'
-spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", tol=0.01, param=NULL, nbcores=1, nbinitSmall=500, nbinitKept=30, nbiterSmall=10, nbiterKept=500){
+spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", tol=0.001, param=NULL, nbcores=1, nbinitSmall=500, nbinitKept=50, nbiterSmall=20, nbiterKept=500){
   obs <- BuildSTCdata(obs, map, m=m)
   nbcores <- min(detectCores(all.tests = FALSE, logical = FALSE),  nbcores)
   if (nbinitSmall<nbinitKept) nbinitKept <- nbinitSmall
   listmodels <- list()
+  resallmodels <- matrix(NA, length(G)*length(K)*length(Q),3)
+  lig <- 0
   for (g in G){
     for (k in K){
       for (q in Q){
         listmodels[[length(listmodels)+1]] <- STCmodel(g, k, q, is.null(map))
+        lig <- lig + 1
+        resallmodels[lig,] <- c(g, k, q)
       }
     }
   }
@@ -112,7 +116,10 @@ spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", t
     for (it in 1:length(listmodels))  results[[it]] <- spatimeclusModelKnown(obs, listmodels[[it]], param, tune)
   }
   allcrit <- rep(-Inf, length(results))  
+  degen <- rep(-Inf, length(results))
+  garde <- degen
   for (it in 1:length(listmodels)){
+    degen[it] <- results[[it]]@criteria@degeneracy
     if (crit=="BIC"){
       allcrit[it] <- results[[it]]@criteria@BIC
     }else if (crit=="AIC"){
@@ -121,5 +128,9 @@ spatimeclus <- function(obs, G, K, Q, map=NULL, m=1:(dim(obs)[3]), crit="BIC", t
       allcrit[it] <- results[[it]]@criteria@ICL      
     }
   }
-  return(results[[which.max(allcrit)]])
+  garde <- allcrit
+  garde[which(degen>0.5)] <- -Inf
+  results <- results[[which.max(garde)]]
+  results@allmodels <- cbind(resallmodels, allcrit, degen)
+  return(results)
 }
