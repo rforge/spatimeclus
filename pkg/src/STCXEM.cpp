@@ -15,7 +15,7 @@ void STCXEM::Estep(){
 }
 
 void STCXEM::Output(S4 * reference_p){
-  as<S4>(reference_p->slot("criteria")).slot("loglike") = wrap(ComputeLogLike());
+  as<S4>(reference_p->slot("criteria")).slot("loglike") = wrap(max(m_loglikeSmall));
   as<S4>(reference_p->slot("criteria")).slot("degeneracy") = wrap(cpdegeneracy);
   as<S4>(reference_p->slot("param")).slot("proportions") = wrap(trans(m_paramCurrent_p->m_proportions));
   as<S4>(reference_p->slot("param")).slot("lambda") = wrap(m_paramCurrent_p->m_lambda);

@@ -4,9 +4,9 @@
 \alias{spatimeclus}
 \title{This function performs the maximum likelihood estimation for a known model in clustering}
 \usage{
-spatimeclus(obs, G, K, Q, map = map, m = 1:(dim(obs)[3]), crit = "BIC",
-  tol = 0.1, param = NULL, nbcores = 1, nbinitSmall = 100,
-  nbinitKept = 10, nbiterSmall = 10, nbiterKept = 500)
+spatimeclus(obs, G, K, Q, map = NULL, m = 1:(dim(obs)[3]), crit = "BIC",
+  tol = 0.001, param = NULL, nbcores = 1, nbinitSmall = 500,
+  nbinitKept = 50, nbiterSmall = 20, nbiterKept = 500)
 }
 \arguments{
 \item{G}{numeric. It defines possible numbers of components.}
@@ -21,15 +21,15 @@ spatimeclus(obs, G, K, Q, map = map, m = 1:(dim(obs)[3]), crit = "BIC",
 
 \item{crit}{character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").}
 
-\item{tol}{numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.1).}
+\item{tol}{numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.01).}
 
 \item{param}{list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional).}
 
 \item{nbcores}{numeric.  It defines the numerber of cores used by the alogrithm, only for Linux and Mac (optional, default is 1).}
 
-\item{nbinitSmall}{numeric. It defines the number of random initializations (optional, default is 100).}
+\item{nbinitSmall}{numeric. It defines the number of random initializations (optional, default is 500).}
 
-\item{nbinitKept}{numeric. It defines the number of chains estimated until convergence (optional, default is 10).}
+\item{nbinitKept}{numeric. It defines the number of chains estimated until convergence (optional, default is 30).}
 
 \item{nbiterSmall}{numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 10).}
 

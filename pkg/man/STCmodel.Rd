@@ -4,7 +4,7 @@
 \alias{STCmodel}
 \title{This function builts an instance of \linkS4class{STCmodel}.}
 \usage{
-STCmodel(G, K, Q)
+STCmodel(G, K, Q, nospatial)
 }
 \arguments{
 \item{G}{integer. It defines the number of mixture components.}

@@ -6,7 +6,7 @@
 \alias{SpaTimeClus-package}
 \title{SpaTimeClus a package for clustering spatio-temporal data}
 \description{
-todo
+SpaTimeClus is a tool for clustering Spatio-Temporal data.
 }
 \details{
 \tabular{ll}{
@@ -21,14 +21,22 @@ todo
 todo
 }
 \examples{
-data(obs)
+data(airparif)
+
+# Clustering of the data by considering the spatial dependencies
+res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+summary(res.spa)
+
+# Clustering of the data without considering the spatial dependencies
+res.nospa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+summary(res.nospa)
 
 }
 \author{
-Author: Marbac M., and McNicholas P.
+Author: Cheam A., Marbac M., and McNicholas P.
 }
 \references{
-Marbac M., and McNicholas P.
+Cheam A., Marbac M., and McNicholas P., Model-Based Clustering for Spatio-Temporal Data Applied for Air Quality.
 }
 \keyword{package}
 

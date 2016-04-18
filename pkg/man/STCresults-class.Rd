@@ -12,6 +12,7 @@
   \item{criteria}{\linkS4class{STCcriteria}. It contains the elements relied to the information criteria.}
   \item{partitions}{\linkS4class{STCpartitions}. It contains the elements relied to the partitions.}
   \item{tune}{\linkS4class{STCtune}. It contains the tunning parameters of the algorithm.}
+  \item{allmodels}{matrix. list of the estimnated models and their information criterion.}
 }
 }
 \examples{
