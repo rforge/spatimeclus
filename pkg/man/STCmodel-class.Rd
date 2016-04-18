@@ -9,6 +9,7 @@
   \item{G}{integer. It defines the number of mixture components.}
   \item{K}{integer. It defines the number of polynoms for each component.}
   \item{Q}{integer. It defines the degree of the polynoms.}
+  \item{spatial}{integer.  It defines if the spatial dependencies are considered (1:yes, 0:no).}
   \item{nbparam}{integer.  It indicates the number of parameters involved by the model.}
 }
 }

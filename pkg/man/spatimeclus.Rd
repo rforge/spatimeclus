@@ -9,6 +9,8 @@ spatimeclus(obs, G, K, Q, map = NULL, m = 1:(dim(obs)[3]), crit = "BIC",
   nbinitKept = 50, nbiterSmall = 20, nbiterKept = 500)
 }
 \arguments{
+\item{obs}{array It contains the observations to cluster where the dimensions are respectively: number of the observation, site of the observation, time of the observation.}
+
 \item{G}{numeric. It defines possible numbers of components.}
 
 \item{K}{numeric. It defines possible numbers of regressions per components}
@@ -17,25 +19,23 @@ spatimeclus(obs, G, K, Q, map = NULL, m = 1:(dim(obs)[3]), crit = "BIC",
 
 \item{map}{matrix. It gives the spatial coordiantes of each site.}
 
-\item{m}{numeric. It indicates the moments of observations.}
+\item{m}{numeric. It indicates the moments of observations (optional, default is 1:T).}
 
 \item{crit}{character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").}
 
-\item{tol}{numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.01).}
+\item{tol}{numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.001).}
 
-\item{param}{list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional).}
+\item{param}{list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional, starting point are sampled at random).}
 
 \item{nbcores}{numeric.  It defines the numerber of cores used by the alogrithm, only for Linux and Mac (optional, default is 1).}
 
 \item{nbinitSmall}{numeric. It defines the number of random initializations (optional, default is 500).}
 
-\item{nbinitKept}{numeric. It defines the number of chains estimated until convergence (optional, default is 30).}
+\item{nbinitKept}{numeric. It defines the number of chains estimated until convergence (optional, default is 50).}
 
-\item{nbiterSmall}{numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 10).}
+\item{nbiterSmall}{numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 20).}
 
 \item{nbiterKept}{numeric. It defines the maximum number of iterations before to stop the algorith; (optional, default is 500).}
-
-\item{x}{array It contains the observations to cluster where the dimesions are respectively: number of the observation, site of the observation, time of the observation.}
 }
 \value{
 Returns an instance of \linkS4class{STCresults}.
@@ -44,9 +44,16 @@ Returns an instance of \linkS4class{STCresults}.
 This function performs the maximum likelihood estimation for a known model in clustering
 }
 \examples{
-data(obs)
+\dontrun{
+data(airparif)
 
+# Clustering of the data by considering the spatial dependencies
+res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+summary(res.spa)
 
-
+# Clustering of the data without considering the spatial dependencies
+res.nospa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+summary(res.nospa)
+}
 }
 

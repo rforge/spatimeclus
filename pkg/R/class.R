@@ -6,6 +6,7 @@
 ##'   \item{G}{integer. It defines the number of mixture components.}
 ##'   \item{K}{integer. It defines the number of polynoms for each component.}
 ##'   \item{Q}{integer. It defines the degree of the polynoms.}
+##'   \item{spatial}{integer.  It defines if the spatial dependencies are considered (1:yes, 0:no).}
 ##'   \item{nbparam}{integer.  It indicates the number of parameters involved by the model.}
 ##' }
 ##'
@@ -40,10 +41,11 @@ setClass(
 ##' @param G integer. It defines the number of mixture components.
 ##' @param K integer. It defines the number of polynoms for each component.
 ##' @param Q integer. It defines the degree of the polynoms.
+##' @param nospatial binary. It defines if the spatial dependencies are considered (1:no, 0:yes).
 ##' 
 ##'  
 ##' @return Returns an instance of \linkS4class{STCmodel}.
-##' @export
+##' 
 ##'
 ##'
 STCmodel <- function(G, K, Q, nospatial){

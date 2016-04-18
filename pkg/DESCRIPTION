@@ -1,12 +1,13 @@
 Package: SpaTimeClus
 Type: Package
-Title: What the package does (short line)
+Title: Model-Based Clustering of Spatio-Temporal Data
 Version: 1.0
-Date: 2015-11-20
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
+Date: 2016-04-18
+Author: Cheam A., Marbac M., and McNicholas P.
+Maintainer: Matthieu Marbac <matthieu.marbac@gmail.com>
+Description: Model-Based Clustering of Spatio-Temporal Data. Mixture model is used to achieve the clustering goal. Each component is itself a mixture model of polynomial autoregressive regressions whose the logistic weights consider the spatial and temporal information.
 Imports: methods, Rcpp (>= 0.11.1), parallel
 LinkingTo: Rcpp, RcppArmadillo
-License: What license is it under?
+License: GPL (>= 2)
+Depends: R (>= 3.0.2)
 RoxygenNote: 5.0.1

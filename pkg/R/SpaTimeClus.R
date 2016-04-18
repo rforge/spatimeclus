@@ -6,12 +6,12 @@
 ##'   Package: \tab SpaTimeClus\cr 
 ##'   Type: \tab Package\cr 
 ##'   Version: \tab 1.0.0\cr
-##'   Date: \tab 2015-11-03\cr 
+##'   Date: \tab 2016-04-18\cr 
 ##'   License: \tab GPL-2\cr 
 ##'   LazyLoad: \tab yes\cr
 ##' }
 ##'
-##' todo 
+##' The main function of this package is \link{spatimeclus} that performs the clustering of spatio-temporal data.
 ##' 
 ##' @name SpaTimeClus-package
 ##' @aliases SpaTimeClus
@@ -30,6 +30,7 @@
 ##' @references Cheam A., Marbac M., and McNicholas P., Model-Based Clustering for Spatio-Temporal Data Applied for Air Quality.
 ##' 
 ##' @examples
+##' \dontrun{
 ##' data(airparif)
 ##' 
 ##' # Clustering of the data by considering the spatial dependencies
@@ -39,9 +40,26 @@
 ##' # Clustering of the data without considering the spatial dependencies
 ##' res.nospa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
 ##' summary(res.nospa)
+##' }
 ##' 
 NULL
 
+##' Real spatio-temporal data: airparif
+##' 
+##' airparif$obs describes 101 days in 2015 by indicating the quantity of NO2 at 9 sites around Paris during 24 hours.
+##'
+##' airparif$map indicates the locations of the 9 sites  around Paris where the measures are taken.
+##' 
+##' airparif$datasup describes the 101 days with meteorological variables.
+##'
+##'
+##' @name airparif
+##' @docType data
+##' @keywords datasets
+##' 
+##' @examples
+##'   data(airparif)
+NULL
 
 
 spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
@@ -69,28 +87,35 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ###################################################################################
 ##' This function performs the maximum likelihood estimation for a known model in clustering
 ##'
-##' @param x array It contains the observations to cluster where the dimesions are respectively: number of the observation, site of the observation, time of the observation.  
+##' @param obs array It contains the observations to cluster where the dimensions are respectively: number of the observation, site of the observation, time of the observation.  
 ##' @param G numeric. It defines possible numbers of components.
 ##' @param K numeric. It defines possible numbers of regressions per components
 ##' @param Q numeric. It defines possible degrees of regressions.
 ##' @param map matrix. It gives the spatial coordiantes of each site.
-##' @param m numeric. It indicates the moments of observations.
+##' @param m numeric. It indicates the moments of observations (optional, default is 1:T).
 ##' @param crit character. It indicates the criterion used for the model selection ("AIC", "BIC" or "ICL", optional, default is "BIC").
-##' @param tol numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.01).
-##' @param param list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional).
+##' @param tol numeric. The algorithm is stopped when the loglikelihood increases less than tol during two successive iterations (optional, default is 0.001).
+##' @param param list of \linkS4class{STCparam}. It gives the initial values of the EM algorithm (optional, starting point are sampled at random).
 ##' @param nbcores numeric.  It defines the numerber of cores used by the alogrithm, only for Linux and Mac (optional, default is 1).
 ##' @param nbinitSmall numeric. It defines the number of random initializations (optional, default is 500).
-##' @param nbinitKept numeric. It defines the number of chains estimated until convergence (optional, default is 30).
-##' @param nbiterSmall numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 10).
+##' @param nbinitKept numeric. It defines the number of chains estimated until convergence (optional, default is 50).
+##' @param nbiterSmall numeric. It defines the number of iterations before keeping the nbinitKept best chains (optional, default is 20).
 ##' @param nbiterKept numeric. It defines the maximum number of iterations before to stop the algorith; (optional, default is 500).
 ##' 
 ##'  
 ##' @return Returns an instance of \linkS4class{STCresults}.
 ##' @examples
-##' data(obs)
+##' \dontrun{
+##' data(airparif)
 ##' 
+##' # Clustering of the data by considering the spatial dependencies
+##' res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+##' summary(res.spa)
 ##' 
-##' 
+##' # Clustering of the data without considering the spatial dependencies
+##' res.nospa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+##' summary(res.nospa)
+##' }
 ##' @export
 ##'
 ##'

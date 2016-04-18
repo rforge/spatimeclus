@@ -12,6 +12,8 @@ STCmodel(G, K, Q, nospatial)
 \item{K}{integer. It defines the number of polynoms for each component.}
 
 \item{Q}{integer. It defines the degree of the polynoms.}
+
+\item{nospatial}{binary. It defines if the spatial dependencies are considered (1:no, 0:yes).}
 }
 \value{
 Returns an instance of \linkS4class{STCmodel}.
