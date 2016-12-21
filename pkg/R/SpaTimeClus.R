@@ -21,7 +21,7 @@
 ##' @import parallel
 ##' @import Rcpp
 ##' @import methods
-##' @importFrom stats runif
+##' @importFrom stats runif coefficients lm var
 ##' @useDynLib SpaTimeClus
 ##'
 ##' @author
