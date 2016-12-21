@@ -2,7 +2,7 @@ Package: SpaTimeClus
 Type: Package
 Title: Model-Based Clustering of Spatio-Temporal Data
 Version: 1.0
-Date: 2016-04-18
+Date: 2016-12-21
 Author: Cheam A., Marbac M., and McNicholas P.
 Maintainer: Matthieu Marbac <matthieu.marbac@gmail.com>
 Description: Model-Based Clustering of Spatio-Temporal Data. Mixture model is used to achieve the clustering goal. Each component is itself a mixture model of polynomial autoregressive regressions whose the logistic weights consider the spatial and temporal information.

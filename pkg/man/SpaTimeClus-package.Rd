@@ -13,7 +13,7 @@ SpaTimeClus is a tool for clustering Spatio-Temporal data.
   Package: \tab SpaTimeClus\cr 
   Type: \tab Package\cr 
   Version: \tab 1.0.0\cr
-  Date: \tab 2016-04-18\cr 
+  Date: \tab 2016-12-21\cr 
   License: \tab GPL-2\cr 
   LazyLoad: \tab yes\cr
 }
