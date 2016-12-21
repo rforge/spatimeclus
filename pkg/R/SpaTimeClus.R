@@ -34,7 +34,8 @@
 ##' data(airparif)
 ##' 
 ##' # Clustering of the data by considering the spatial dependencies
-##' res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+##' res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map,
+##'  nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
 ##' summary(res.spa)
 ##' 
 ##' # Clustering of the data without considering the spatial dependencies
@@ -109,7 +110,8 @@ spatimeclusModelKnown <- function(obs, model, param=NULL, tune=tune){
 ##' data(airparif)
 ##' 
 ##' # Clustering of the data by considering the spatial dependencies
-##' res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map, nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
+##' res.spa <- spatimeclus(airparif$obs,  G=3, K=4, Q=4, map = airparif$map,
+##'  nbinitSmall=50, nbinitKept=5, nbiterSmall=5)
 ##' summary(res.spa)
 ##' 
 ##' # Clustering of the data without considering the spatial dependencies
